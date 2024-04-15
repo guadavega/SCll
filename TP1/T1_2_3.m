@@ -19,7 +19,7 @@ plot(tt,Vc, 'b' );title('Tension , V_t'); grid on;hold on;
 figure(2)
 plot(tt,I, 'b' );title('Corriente , I_t');grid on;hold on;
 
-t = linspace(0,0.1,muestra);           
+t = linspace(0,0.2,muestra);           
 u = linspace(0,0,muestra);              %definición del vector tiempo y entrada
 vin = 12;                               %definición de tensión de entrada
 ii = 0;
