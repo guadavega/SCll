@@ -1,5 +1,8 @@
-% ITEM 5------------------------------------------------------------------------
-clear all; close all;
+clc, clear all, close all;
+%Item 5
+
+%Se obtiene el modelo del sistema considerando como entrada un escalón de 
+%12V, como salida a la velocidad angular y un torque de carga TL
 
 % Cargamos los datos medidos
 valores = xlsread('Curvas_Medidas_Motor_2024.xls');
@@ -33,9 +36,10 @@ pretty(wr_Tl)
 % por Chen
 
 % Se definen los valores de tiempo y respuesta del sistema
-t1 = 0.00005;   y1 = valores(703, 2);
-t2 = 0.00005;   y2 = valores(704, 2);
-t3 = 0.00005;   y3 = valores(705, 2);
+t1 = 0.00005;            %inicio del tiempo de medidas
+y1 = valores(703, 2);
+y2 = valores(704, 2);
+y3 = valores(705, 2);
 
 
 % Se definen las k correspondientes a las 3 ecuaciones para los puntos tomados
