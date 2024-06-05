@@ -1,7 +1,5 @@
 clc; clear all; close all;
 
-% Caso de estudio 2. Sistema lineal de cuatro variables de estado.
-
 % Parámetros del sistema
 a = 0.07;
 b = 5;
@@ -15,32 +13,42 @@ A = [-a a 0 0;
      c 0 0 0];
 B = [0; 0; b*w^2; 0];
 C = [0 0 0 1; 0 1 0 0];
+D = 0;
 
-% Polos deseados para el controlador
+% Polos deseados para el controlador continuo
 p1 = -15 + 15i;
 p2 = -15 - 15i;
 p3 = -0.5 + 0.5i;
 p4 = -0.5 - 0.5i;
 
-% Controlador continuo
-K = acker(A, B, [p1 p2 p3 p4]);
+% Tiempo de muestreo
+Ts = 0.005;      % Tiempo de muestreo
 
-% Ganancia de prealimentación
-G = -inv(C(1,:) * inv(A - B * K) * B);
+% Conversión de las matrices del sistema al dominio discreto
+sys_d = c2d(ss(A, B, C, D), Ts);
+Ad = sys_d.A;
+Bd = sys_d.B;
+Cd = sys_d.C;
+Dd = sys_d.D;
 
-% Observador
-Ao = A';
-Bo = C';
-Co = B';
+% Diseño del controlador discreto
+Q = diag([1 1 1 1]);  
+R = 1;                
+K_disc = dlqr(Ad, Bd, Q, R);
 
-% Polos del observador
-poles_obs = [-150 -120 -30 -40]; % Se eligen de 2 a 10 veces más negativos que p1,p2,p3,p4
-Ko = place(Ao, Bo, poles_obs)';
+% Ganancia de prealimentación en tiempo discreto
+G_disc = -inv(Cd(1,:) * inv(Ad - Bd * K_disc) * Bd);
 
+% Diseño del observador LQR discreto
+Qo = 100 * diag([100 100 10 100]);    
+Ro = 1;
+Ko_disc = dlqr(Ad', Cd', Qo, Ro);
+Ko_disc = Ko_disc';      % Ajuste de dimensiones
+
+% Variables de simulación
 T = 70;         % Tiempo de simulación
-h = 1e-4; 
-t = 0:h:(T-h);  % Vector tiempo
-pasos = T/h;
+t = 0:Ts:(T-Ts);  % Vector tiempo
+pasos = T/Ts;
 
 ref = 100;      % Referencia de 100 mtrs de altura
 
@@ -65,7 +73,7 @@ high_obs_hist = zeros(size(t));
 
 for i = 1:pasos
     % Controlador
-    u = -K * xobs + G * ref;   
+    u = -K_disc * xobs + G_disc * ref;   
     
     % Zona muerta
     if abs(u) < 0.1
@@ -80,16 +88,14 @@ for i = 1:pasos
     phi_p_hist(i) = x(3);
     high_hist(i) = x(4);
     
-    % Sistema lineal
-    xp = A * x + B * uu;
-    x = x + h * xp;
+    % Sistema lineal en tiempo discreto
+    x = Ad * x + Bd * uu;
     
-    % Observador
-    y = C * x;          % Salida real
-    y_obs = C * xobs;   % Salida estimada por el observador
-    e = y - y_obs;      % Error de estimación
-    x_obs_p = A * xobs + B * uu + Ko * e; % Dinámica del observador
-    xobs = xobs + h * x_obs_p;
+    % Observador en tiempo discreto
+    y = Cd * x;          % Salida real
+    y_obs = Cd * xobs;   % Salida estimada por el observador
+    e = y - y_obs;       % Error de estimación
+    xobs = Ad * xobs + Bd * uu + Ko_disc * e; % Dinámica del observador
     
     % Se guardan las estimaciones del observador
     alpha_obs_hist(i) = xobs(1);
@@ -100,7 +106,7 @@ for i = 1:pasos
     u_hist(i) = uu;
 end
 
-
+% Gráficos
 figure;
 subplot(3, 2, 1);
 hold on
