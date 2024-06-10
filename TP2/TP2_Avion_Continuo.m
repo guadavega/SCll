@@ -16,11 +16,32 @@ A = [-a a 0 0;
 B = [0; 0; b*w^2; 0];
 C = [0 0 0 1; 0 1 0 0];
 
+% Variables de estado
+alpha = 0;      % condiciones iniciales
+phi = 0;
+phi_p = 0;
+high = 500;     % altura de inicio
+u = 0;          % acción de control
+uu = 0;
+x = [alpha; phi; phi_p; high];
+
 % Polos deseados para el controlador
 p1 = -15 + 15i;
 p2 = -15 - 15i;
 p3 = -0.5 + 0.5i;
 p4 = -0.5 - 0.5i;
+
+% Controlabilidad
+Mc = [B A*B A^2*B A^3*B]; 
+controlabilidad = rank(Mc); 
+
+numVE = size(x);
+
+if(numVE(1) == controlabilidad)
+    fprintf('\nSistema controlable')
+else
+    fprintf('\nSistema NO controlable')
+end
 
 % Controlador continuo
 K = acker(A, B, [p1 p2 p3 p4]);
@@ -28,14 +49,18 @@ K = acker(A, B, [p1 p2 p3 p4]);
 % Ganancia de prealimentación
 G = -inv(C(1,:) * inv(A - B * K) * B);
 
+% Controlador LQR 
+Q = diag([1 1000000 1 1]);
+R = 1000000;
+Klqr = lqr(A, B, Q, R);
+G_lqr = -inv(C(1,:)*inv(A-B*Klqr)*B);
+
+eig(A - B*Klqr)
+
 % Observador
 Ao = A';
 Bo = C';
 Co = B';
-
-% Polos del observador
-%poles_obs = [-150 -120 -30 -40]; % Se eligen de 2 a 10 veces más negativos que p1,p2,p3,p4
-%Ko = place(Ao, Co, poles_obs)';
 
 % Observador LQR
 
@@ -47,19 +72,13 @@ T = 70;         % Tiempo de simulación
 
 % Se toma que la frecuencia de muestreo sea 20 veces más grande, entonces
 % Ts=1/(9x20)=0.0055 segundos
-Ts = 0.005;      % Tiempo de muestreo
+Ts = 1e-4;      % Tiempo de muestreo
 t = 0:Ts:(T-Ts);  % Vector tiempo
 pasos = T/Ts;
 
 ref = 100;      % Referencia de 100 mtrs de altura
 
-alpha = 0;      % Condiciones iniciales
-phi = 0;
-phi_p = 0;
-high = 500;     % Altura de inicio
-u = 0;          % Acción de control
-uu = 0;
-x = [alpha; phi; phi_p; high];
+
 xobs = [0; 0; 0; high];
 
 alpha_hist = zeros(size(t));     % Variables para guardar el estado del sistema 
@@ -74,8 +93,9 @@ high_obs_hist = zeros(size(t));
 
 for i = 1:pasos
     % Controlador
-    u = -K * xobs + G * ref;   
-    
+    %u = -Klqr * xobs + G_lqr * ref;   
+     u = -K * xobs + G * ref;
+     
     % Zona muerta
     if abs(u) < 0.1
         uu = 0;
@@ -94,10 +114,10 @@ for i = 1:pasos
     x = x + Ts * xp;
     
     % Observador
-    y = C * x;          % Salida real
-    y_obs = C * xobs;   % Salida estimada por el observador
-    e = y - y_obs;      % Error de estimación
-    x_obs_p = A * xobs + B * uu + Ko * e; % Dinámica del observador
+    y = C * x;          % salida real
+    y_obs = C * xobs;   % salida estimada por el observador
+    e = y - y_obs;      % error de estimación
+    x_obs_p = A * xobs + B * uu + Ko * e; % dinámica del observador
     xobs = xobs + Ts * x_obs_p;
     
     % Se guardan las estimaciones del observador

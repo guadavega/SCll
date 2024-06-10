@@ -35,15 +35,15 @@ G2 = -inv(C(1,:) * inv(Am2 - B * K2) * B);
 
 % Observador Luenberger
 % Polos del observador (rápidos)
-poles_obs = 5 * eig(A - B * K);
-L = place(A', C', poles_obs)';
-L2 = place(Am2', C', poles_obs)';
+%poles_obs = 5 * eig(A - B * K)
+%L = place(A', C', poles_obs)';
+%L2 = place(Am2', C', poles_obs)';
 
 % Observador LQR
-%Qo = diag([100 1 10 1]);  
-%Ro = 0.01;               
-%L = lqr(A', C', Qo, Ro)';
-%L2 = lqr(Am2', C', Qo, Ro)';
+Qo = diag([100 1 10 1]);  
+Ro = 0.01;               
+L = lqr(A', C', Qo, Ro)';
+L2 = lqr(Am2', C', Qo, Ro)';
 
 % Simulación
 T = 15;          % tiempo de simulación
