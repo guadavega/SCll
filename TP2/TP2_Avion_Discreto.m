@@ -22,7 +22,7 @@ p3 = -0.5 + 0.5i;
 p4 = -0.5 - 0.5i;
 
 % Tiempo de muestreo
-Ts = 0.005;      % Tiempo de muestreo
+Ts = 0.05;      % Tiempo de muestreo
 
 % Conversión de las matrices del sistema al dominio discreto
 sys_d = c2d(ss(A, B, C, D), Ts);
@@ -31,16 +31,17 @@ Bd = sys_d.B;
 Cd = sys_d.C;
 Dd = sys_d.D;
 
-% Diseño del controlador discreto
-Q = diag([1 1 1 1]);  
-R = 1;                
-K_disc = dlqr(Ad, Bd, Q, R);
+% Convertir los polos continuos a discretos
+p_discrete = exp([p1 p2 p3 p4] * Ts);
+
+% Diseño del controlador discreto usando los polos discretos
+K_disc = place(Ad, Bd, p_discrete);
 
 % Ganancia de prealimentación en tiempo discreto
 G_disc = -inv(Cd(1,:) * inv(Ad - Bd * K_disc) * Bd);
 
 % Diseño del observador LQR discreto
-Qo = 100 * diag([100 100 10 100]);    
+Qo = diag([10 10 1 10]);     
 Ro = 1;
 Ko_disc = dlqr(Ad', Cd', Qo, Ro);
 Ko_disc = Ko_disc';      % Ajuste de dimensiones
